@@ -3,10 +3,7 @@ version: '3.8'
 services:
   cliente:
     build: .
-    networks:
-      - localcito-net
-    ports:
-      - "1492:1492"
+    network_mode: host
     restart: unless-stopped
     volumes:
       - ./received_files:/app/received_files
@@ -17,8 +14,3 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-networks:
-  localcito-net:
-    external: true
-    name: puente_localcito-net

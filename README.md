@@ -25,21 +25,43 @@ El sistema consta de dos componentes independientes:
 
 Cada máquina ejecuta su propio docker-compose.yml de forma independiente.
 
-### Puente (1 máquina en la red)
+### Linux (Producción)
 
+Usa `docker-compose.prod.yml` que utiliza `network_mode: host` para comunicación directa en la red.
+
+**Puente (1 máquina en la red):**
+```bash
+cd localcito/puente
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+**Cliente (N máquinas en la red):**
+```bash
+cd localcito/cliente
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### macOS (Desarrollo/Testing)
+
+Usa `docker-compose.yml` que utiliza port mapping y redes Docker bridge.
+
+**Puente:**
 ```bash
 cd localcito/puente
 docker-compose up -d
 ```
 
-### Cliente (N máquinas en la red)
-
+**Cliente:**
 ```bash
 cd localcito/cliente
 docker-compose up -d
 ```
 
-Acceder a la interfaz web: http://localhost:1492
+**Nota**: En macOS, ambos contenedores deben estar en la misma máquina para comunicarse vía multicast.
+
+### Acceso
+
+Interfaz web del cliente: http://localhost:1492
 
 ## Funcionalidades
 
