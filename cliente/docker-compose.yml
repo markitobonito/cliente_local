@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  cliente:
+    build: .
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ./received_files:/app/received_files
+      - ./templates:/app/templates
+      - ./static:/app/static
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

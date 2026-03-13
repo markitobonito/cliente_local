@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  puente:
+    build: .
+    container_name: localcito-puente
+    network_mode: host
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

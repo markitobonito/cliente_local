@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LAN File Transfer - Cliente</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        
+        input[type="text"],
+        input[type="number"],
+        input[type="time"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        input[type="time"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .schedule-fields {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .schedule-fields.active {
+            display: block;
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            margin-right: 5px;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 LAN File Transfer</h1>
+        
+        <!-- File Upload Section -->
+        <div class="card">
+            <h2>📁 Subir Archivo</h2>
+            <form id="fileUploadForm">
+                <div class="form-group">
+                    <label for="fileInput">Seleccionar archivo:</label>
+                    <input type="file" id="fileInput" name="file" required>
+                </div>
+                <button type="submit" id="fileUploadBtn">Enviar Archivo</button>
+                <div id="fileStatus" class="status-message"></div>
+            </form>
+        </div>
+        
+        <!-- Alert/Notification Section -->
+        <div class="card">
+            <h2>🔔 Enviar Alerta</h2>
+            <form id="alertForm">
+                <div class="form-group">
+                    <label for="repetitions">Repeticiones (1-10):</label>
+                    <input type="number" id="repetitions" name="repetitions" min="1" max="10" value="1" required>
+                    <div class="help-text">Número de veces que se reproducirá el mensaje</div>
+                </div>
+                <div class="form-group">
+                    <label for="message">Mensaje:</label>
+                    <input type="text" id="message" name="message" placeholder="Ej: Reunión en 5 minutos" required>
+                    <div class="help-text">El mensaje será convertido a voz (TTS)</div>
+                </div>
+                <button type="submit" id="alertBtn">Enviar Alerta</button>
+                <div id="alertStatus" class="status-message"></div>
+            </form>
+        </div>
+        
+        <!-- Video Upload Section -->
+        <div class="card">
+            <h2>🎥 Subir Video</h2>
+            <form id="videoForm">
+                <div class="form-group">
+                    <label for="videoInput">Seleccionar video:</label>
+                    <input type="file" id="videoInput" name="file" accept="video/*" required>
+                </div>
+                <div class="form-group">
+                    <label for="videoFlag">Modo de reproducción:</label>
+                    <select id="videoFlag" name="flag">
+                        <option value="none">Reproducir ahora (con audio)</option>
+                        <option value="silent">Reproducir ahora (sin audio)</option>
+                        <option value="scheduled">Programar reproducción</option>
+                    </select>
+                </div>
+                
+                <!-- Schedule Fields (hidden by default) -->
+                <div id="scheduleFields" class="schedule-fields">
+                    <div class="form-group">
+                        <label for="scheduleTime">Hora (HH:MM):</label>
+                        <input type="time" id="scheduleTime" name="schedule_time">
+                        <div class="help-text">Formato 24 horas (ej: 14:30)</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Días de la semana:</label>
+                        <div class="checkbox-group">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="day1" value="1">
+                                <label for="day1">Lunes</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="day2" value="2">
+                                <label for="day2">Martes</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="day3" value="3">
+                                <label for="day3">Miércoles</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="day4" value="4">
+                                <label for="day4">Jueves</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="day5" value="5">
+                                <label for="day5">Viernes</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="day6" value="6">
+                                <label for="day6">Sábado</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="day7" value="7">
+                                <label for="day7">Domingo</label>
+                            </div>
+                        </div>
+                        <div class="help-text">Selecciona los días en que se reproducirá el video</div>
+                    </div>
+                </div>
+                
+                <button type="submit" id="videoBtn">Enviar Video</button>
+                <div id="videoStatus" class="status-message"></div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Show/hide schedule fields based on video flag selection
+        document.getElementById('videoFlag').addEventListener('change', function() {
+            const scheduleFields = document.getElementById('scheduleFields');
+            if (this.value === 'scheduled') {
+                scheduleFields.classList.add('active');
+            } else {
+                scheduleFields.classList.remove('active');
+            }
+        });
+        
+        // Helper function to show status messages
+        function showStatus(elementId, message, isSuccess) {
+            const statusEl = document.getElementById(elementId);
+            statusEl.textContent = message;
+            statusEl.className = 'status-message ' + (isSuccess ? 'success' : 'error');
+            statusEl.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Helper function to add loading state to button
+        function setButtonLoading(button, isLoading) {
+            if (isLoading) {
+                button.disabled = true;
+                button.innerHTML = button.textContent + ' <span class="loading"></span>';
+            } else {
+                button.disabled = false;
+                button.innerHTML = button.textContent.replace(' <span class="loading"></span>', '');
+            }
+        }
+        
+        // File Upload Form Handler
+        document.getElementById('fileUploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const fileInput = document.getElementById('fileInput');
+            const button = document.getElementById('fileUploadBtn');
+            
+            if (!fileInput.files.length) {
+                showStatus('fileStatus', 'Por favor selecciona un archivo', false);
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            setButtonLoading(button, true);
+            
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('fileStatus', data.message, true);
+                    fileInput.value = ''; // Clear file input
+                } else {
+                    showStatus('fileStatus', data.message, false);
+                }
+            } catch (error) {
+                showStatus('fileStatus', 'Error al enviar archivo: ' + error.message, false);
+            } finally {
+                setButtonLoading(button, false);
+            }
+        });
+        
+        // Alert Form Handler
+        document.getElementById('alertForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const repetitions = document.getElementById('repetitions').value;
+            const message = document.getElementById('message').value;
+            const button = document.getElementById('alertBtn');
+            
+            if (!message.trim()) {
+                showStatus('alertStatus', 'El mensaje no puede estar vacío', false);
+                return;
+            }
+            
+            setButtonLoading(button, true);
+            
+            try {
+                const response = await fetch('/send-notification', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        repetitions: parseInt(repetitions),
+                        message: message.trim()
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('alertStatus', data.message, true);
+                    document.getElementById('message').value = ''; // Clear message
+                    document.getElementById('repetitions').value = '1'; // Reset repetitions
+                } else {
+                    showStatus('alertStatus', data.message, false);
+                }
+            } catch (error) {
+                showStatus('alertStatus', 'Error al enviar alerta: ' + error.message, false);
+            } finally {
+                setButtonLoading(button, false);
+            }
+        });
+        
+        // Video Form Handler
+        document.getElementById('videoForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const videoInput = document.getElementById('videoInput');
+            const flag = document.getElementById('videoFlag').value;
+            const button = document.getElementById('videoBtn');
+            
+            if (!videoInput.files.length) {
+                showStatus('videoStatus', 'Por favor selecciona un video', false);
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', videoInput.files[0]);
+            formData.append('flag', flag);
+            
+            // If scheduled, validate and add schedule parameters
+            if (flag === 'scheduled') {
+                const scheduleTime = document.getElementById('scheduleTime').value;
+                
+                if (!scheduleTime) {
+                    showStatus('videoStatus', 'Por favor especifica la hora', false);
+                    return;
+                }
+                
+                // Get selected days
+                const selectedDays = [];
+                for (let i = 1; i <= 7; i++) {
+                    if (document.getElementById('day' + i).checked) {
+                        selectedDays.push(i);
+                    }
+                }
+                
+                if (selectedDays.length === 0) {
+                    showStatus('videoStatus', 'Por favor selecciona al menos un día', false);
+                    return;
+                }
+                
+                formData.append('schedule_time', scheduleTime);
+                formData.append('schedule_days', selectedDays.join(','));
+            }
+            
+            setButtonLoading(button, true);
+            
+            try {
+                const response = await fetch('/videos', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('videoStatus', data.message, true);
+                    videoInput.value = ''; // Clear video input
+                    document.getElementById('videoFlag').value = 'none'; // Reset flag
+                    document.getElementById('scheduleFields').classList.remove('active'); // Hide schedule fields
+                    document.getElementById('scheduleTime').value = ''; // Clear time
+                    // Uncheck all days
+                    for (let i = 1; i <= 7; i++) {
+                        document.getElementById('day' + i).checked = false;
+                    }
+                } else {
+                    showStatus('videoStatus', data.message, false);
+                }
+            } catch (error) {
+                showStatus('videoStatus', 'Error al enviar video: ' + error.message, false);
+            } finally {
+                setButtonLoading(button, false);
+            }
+        });
+    </script>
+</body>
+</html>
