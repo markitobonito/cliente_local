@@ -14,5 +14,5 @@ COPY . .
 # Expose port 5000/udp (QUIC)
 EXPOSE 5000/udp
 
-# Set CMD to run bridge.py
-CMD ["python", "-m", "puente.bridge"]
+# Set CMD to run bridge.py directly
+CMD ["python", "bridge.py"]

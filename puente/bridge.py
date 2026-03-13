@@ -21,12 +21,12 @@ import threading
 import time
 from typing import Optional
 
-from .multicast_listener import MulticastListener
-from .multicast_announcer import MulticastAnnouncer
-from .client_table import ActiveClientTable
-from .quic_receiver import BridgeQUICReceiver
-from .quic_forwarder import QUICForwarder
-from .config import (
+from multicast_listener import MulticastListener
+from multicast_announcer import MulticastAnnouncer
+from client_table import ActiveClientTable
+from quic_receiver import BridgeQUICReceiver
+from quic_forwarder import QUICForwarder
+from config import (
     BRIDGE_ANNOUNCEMENT_INTERVAL,
     CLEANUP_INTERVAL,
     CLIENT_TIMEOUT,
@@ -35,7 +35,7 @@ from .config import (
     MULTICAST_PORT,
     QUIC_PORT
 )
-from .utils import detect_local_ip, setup_logging
+from utils import detect_local_ip, setup_logging
 
 
 class BridgeCore:

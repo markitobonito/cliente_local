@@ -12,13 +12,13 @@ import time
 import logging
 from typing import Optional, Callable
 
-from .config import (
+from config import (
     MULTICAST_GROUP,
     MULTICAST_PORT,
     MULTICAST_TTL,
     HEARTBEAT_INTERVAL
 )
-from .utils import detect_local_ip, setup_logging
+from utils import detect_local_ip, setup_logging
 
 
 class DiscoveryModule:

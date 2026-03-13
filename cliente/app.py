@@ -16,8 +16,8 @@ from typing import Optional
 from flask import Flask, request, render_template, jsonify
 from werkzeug.utils import secure_filename
 
-from .quic_sender import QUICSender
-from .config import FLASK_PORT, RECEIVE_DIR, MAX_FILE_SIZE, MAX_ALERT_REPETITIONS
+from quic_sender import QUICSender
+from config import FLASK_PORT, RECEIVE_DIR, MAX_FILE_SIZE, MAX_ALERT_REPETITIONS
 
 
 logger = logging.getLogger(__name__)

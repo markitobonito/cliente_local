@@ -20,8 +20,8 @@ from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent, StreamDataReceived
 
-from .client_table import ActiveClientTable
-from .config import QUIC_PORT, MAX_FORWARDER_WORKERS
+from client_table import ActiveClientTable
+from config import QUIC_PORT, MAX_FORWARDER_WORKERS
 
 
 logger = logging.getLogger(__name__)

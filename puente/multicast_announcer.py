@@ -12,8 +12,8 @@ import time
 import logging
 from typing import Optional
 
-from .config import MULTICAST_GROUP, MULTICAST_PORT, MULTICAST_TTL, BRIDGE_ANNOUNCEMENT_INTERVAL
-from .utils import detect_local_ip, setup_logging
+from config import MULTICAST_GROUP, MULTICAST_PORT, MULTICAST_TTL, BRIDGE_ANNOUNCEMENT_INTERVAL
+from utils import detect_local_ip, setup_logging
 
 
 class MulticastAnnouncer:

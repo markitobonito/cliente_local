@@ -19,7 +19,7 @@ from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import QuicEvent, StreamDataReceived
 
-from .config import QUIC_PORT, RECEIVE_DIR
+from config import QUIC_PORT, RECEIVE_DIR
 
 
 logger = logging.getLogger(__name__)
@@ -169,7 +169,6 @@ class QUICReceiver:
         # Generate self-signed certificate for QUIC (required by protocol)
         # In production, use proper certificates
         try:
-            from aioquic.quic.configuration import QuicConfiguration
             import ssl
             import tempfile
             from cryptography import x509

@@ -11,8 +11,8 @@ import threading
 import logging
 from typing import Optional, Callable, Tuple
 
-from .config import MULTICAST_GROUP, MULTICAST_PORT
-from .utils import setup_logging
+from config import MULTICAST_GROUP, MULTICAST_PORT
+from utils import setup_logging
 
 
 class MulticastListener:

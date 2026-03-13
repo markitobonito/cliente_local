@@ -19,7 +19,7 @@ from aioquic.asyncio.protocol import QuicConnectionProtocol
 from aioquic.quic.configuration import QuicConfiguration
 from aioquic.quic.events import StreamDataReceived
 
-from .config import QUIC_PORT, MAX_FILE_SIZE
+from config import QUIC_PORT, MAX_FILE_SIZE
 
 
 logger = logging.getLogger(__name__)
