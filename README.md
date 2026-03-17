@@ -23,45 +23,74 @@ El sistema consta de dos componentes independientes:
 
 ## Despliegue
 
-Cada máquina ejecuta su propio docker-compose.yml de forma independiente.
+### Desarrollo Local (macOS/Windows o Linux con ambos contenedores en misma máquina)
 
-### Linux (Producción)
+Usa la configuración por defecto con redes Docker:
 
-Usa `docker-compose.prod.yml` que utiliza `network_mode: host` para comunicación directa en la red.
-
-**Puente (1 máquina en la red):**
+**1. Inicia el puente primero:**
 ```bash
 cd localcito/puente
-docker-compose -f docker-compose.prod.yml up -d
+docker compose up -d
 ```
 
-**Cliente (N máquinas en la red):**
+**2. Luego inicia el cliente:**
 ```bash
 cd localcito/cliente
-docker-compose -f docker-compose.prod.yml up -d
+docker compose up -d
 ```
 
-### macOS (Desarrollo/Testing)
+**3. Accede a la interfaz web:**
+```
+http://localhost:1492
+```
 
-Usa `docker-compose.yml` que utiliza port mapping y redes Docker bridge.
+### Producción Linux (Máquinas Separadas)
 
-**Puente:**
+Para mejor rendimiento en Linux con máquinas separadas, usa `network_mode: host`:
+
+**1. Edita `docker-compose.yml` en cada máquina:**
+
+En el servidor puente (`localcito/puente/docker-compose.yml`):
+```yaml
+services:
+  puente:
+    # Comentar estas líneas:
+    # networks:
+    #   - localcito
+    # Descomentar esta línea:
+    network_mode: host
+```
+
+En cada servidor cliente (`localcito/cliente/docker-compose.yml`):
+```yaml
+services:
+  cliente:
+    # Comentar estas líneas:
+    # networks:
+    #   - localcito
+    # Descomentar esta línea:
+    network_mode: host
+```
+
+**2. Inicia los contenedores:**
 ```bash
+# En servidor puente
 cd localcito/puente
-docker-compose up -d
-```
+docker compose up -d
 
-**Cliente:**
-```bash
+# En cada servidor cliente
 cd localcito/cliente
-docker-compose up -d
+docker compose up -d
 ```
 
-**Nota**: En macOS, ambos contenedores deben estar en la misma máquina para comunicarse vía multicast.
+### Notas Importantes
 
-### Acceso
-
-Interfaz web del cliente: http://localhost:1492
+- **Atributo `version`**: Ya no es necesario en Docker Compose v2, ha sido eliminado
+- **Redes Docker**: 
+  - Desarrollo: Usa red compartida `localcito-network` para comunicación entre contenedores en misma máquina
+  - Producción: Usa `network_mode: host` para acceso directo a la red física
+- **Multicast**: Asegúrate de que tu red soporte multicast UDP (grupo 239.255.255.250:4000)
+- **Firewall**: Permite tráfico UDP en puertos 4000 (multicast) y 5000 (QUIC), TCP 1492 (Flask)
 
 ## Funcionalidades
 

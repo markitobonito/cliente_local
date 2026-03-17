@@ -10,6 +10,9 @@ MULTICAST_TTL = 1
 # QUIC configuration
 QUIC_PORT = 5000
 
+# HTTP API configuration
+BRIDGE_API_PORT = 8080
+
 # Bridge announcement configuration
 BRIDGE_ANNOUNCEMENT_INTERVAL = 3  # seconds
 

@@ -26,6 +26,7 @@ from multicast_announcer import MulticastAnnouncer
 from client_table import ActiveClientTable
 from quic_receiver import BridgeQUICReceiver
 from quic_forwarder import QUICForwarder
+from api_server import BridgeAPIServer
 from config import (
     BRIDGE_ANNOUNCEMENT_INTERVAL,
     CLEANUP_INTERVAL,
@@ -33,7 +34,8 @@ from config import (
     ACTIVE_CLIENT_LOG_INTERVAL,
     MULTICAST_GROUP,
     MULTICAST_PORT,
-    QUIC_PORT
+    QUIC_PORT,
+    BRIDGE_API_PORT
 )
 from utils import detect_local_ip, setup_logging
 

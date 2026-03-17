@@ -1,12 +1,16 @@
-version: '3.8'
-
 services:
   cliente:
     build: .
+    # Para desarrollo local (ambos contenedores en misma máquina): usar networks
+    # Para producción (máquinas separadas): comentar networks y descomentar network_mode
     networks:
-      - localcito-net
+      - localcito
+    # network_mode: host  # Descomentar para producción Linux
     ports:
-      - "1492:1492"
+      - "1492:1492/tcp"
+      # Solo necesarios si NO usas network_mode: host
+      - "5000:5000/udp"
+      - "4000:4000/udp"
     restart: unless-stopped
     volumes:
       - ./received_files:/app/received_files
@@ -19,6 +23,6 @@ services:
         max-file: "3"
 
 networks:
-  localcito-net:
+  localcito:
+    name: localcito-network
     external: true
-    name: puente_localcito-net
