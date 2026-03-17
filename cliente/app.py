@@ -12,6 +12,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Optional
+import requests
 
 from flask import Flask, request, render_template, jsonify
 from werkzeug.utils import secure_filename
@@ -49,12 +50,23 @@ class FlaskWebApp:
         self.quic_sender = quic_sender
         self.upload_folder = Path("./uploads")
         self.upload_folder.mkdir(exist_ok=True)
+        self.bridge_ip: Optional[str] = None
         
         self.app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
         self.app.config['UPLOAD_FOLDER'] = str(self.upload_folder)
         
         self.setup_routes()
         logger.info("Flask web application initialized")
+    
+    def set_bridge_ip(self, bridge_ip: str) -> None:
+        """
+        Set the bridge IP address for API queries.
+        
+        Args:
+            bridge_ip: IP address of the bridge
+        """
+        self.bridge_ip = bridge_ip
+        logger.info(f"Bridge IP set to: {bridge_ip}")
         
     def setup_routes(self) -> None:
         """Configure all Flask routes."""
@@ -357,6 +369,74 @@ class FlaskWebApp:
                 return jsonify({
                     'success': False,
                     'message': f'Video upload error: {str(e)}'
+                }), 500
+        
+        @self.app.route('/api/network-status', methods=['GET'])
+        def network_status():
+            """
+            Get network status including client count.
+            
+            Queries the bridge API to get the number of active clients
+            and returns the count minus 1 (excluding self).
+            
+            Returns:
+                JSON response: {'success': bool, 'client_count': int, 'message': str}
+            """
+            try:
+                if not self.bridge_ip:
+                    return jsonify({
+                        'success': False,
+                        'client_count': 0,
+                        'message': 'Bridge not discovered yet'
+                    }), 503
+                
+                # Query bridge API
+                bridge_api_url = f"http://{self.bridge_ip}:8080/api/clients"
+                
+                try:
+                    response = requests.get(bridge_api_url, timeout=2)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        total_clients = data.get('count', 0)
+                        # Subtract 1 to exclude self
+                        other_clients = max(0, total_clients - 1)
+                        
+                        return jsonify({
+                            'success': True,
+                            'client_count': other_clients,
+                            'message': 'OK'
+                        }), 200
+                    else:
+                        logger.warning(f"Bridge API returned status {response.status_code}")
+                        return jsonify({
+                            'success': False,
+                            'client_count': 0,
+                            'message': 'Bridge API error'
+                        }), 503
+                        
+                except requests.exceptions.Timeout:
+                    logger.warning("Bridge API request timeout")
+                    return jsonify({
+                        'success': False,
+                        'client_count': 0,
+                        'message': 'Bridge timeout'
+                    }), 503
+                    
+                except requests.exceptions.ConnectionError:
+                    logger.warning("Cannot connect to bridge API")
+                    return jsonify({
+                        'success': False,
+                        'client_count': 0,
+                        'message': 'Bridge unreachable'
+                    }), 503
+                    
+            except Exception as e:
+                logger.error(f"Error getting network status: {e}")
+                return jsonify({
+                    'success': False,
+                    'client_count': 0,
+                    'message': f'Error: {str(e)}'
                 }), 500
         
     def run(self, host: str = '0.0.0.0', port: int = FLASK_PORT, debug: bool = False) -> None:

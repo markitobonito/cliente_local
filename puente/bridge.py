@@ -69,6 +69,7 @@ class BridgeCore:
         self.announcer = MulticastAnnouncer(MULTICAST_GROUP, MULTICAST_PORT)
         self.receiver = BridgeQUICReceiver(QUIC_PORT)
         self.forwarder = QUICForwarder(self.client_table)
+        self.api_server = BridgeAPIServer(self.client_table, BRIDGE_API_PORT)
         
         # State
         self._running = False
@@ -103,9 +104,14 @@ class BridgeCore:
             self.logger.info(f"Bridge starting on {self._local_ip}")
             self.logger.info(f"Multicast: {MULTICAST_GROUP}:{MULTICAST_PORT}")
             self.logger.info(f"QUIC Port: {QUIC_PORT}")
+            self.logger.info(f"API Port: {BRIDGE_API_PORT}")
             self.logger.info(f"=" * 60)
             
             self._running = True
+            
+            # Start API server
+            self.api_server.start()
+            self.logger.info(f"Bridge API server started on port {BRIDGE_API_PORT}")
             
             # Set up signal handlers for graceful shutdown
             signal.signal(signal.SIGINT, self._signal_handler)
@@ -278,6 +284,9 @@ class BridgeCore:
         
         self.logger.info("Stopping bridge...")
         self._running = False
+        
+        # Stop API server
+        self.api_server.stop()
         
         # Stop multicast modules
         self.listener.stop()

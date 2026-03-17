@@ -200,6 +200,14 @@
     <div class="container">
         <h1>🚀 LAN File Transfer</h1>
         
+        <!-- Network Status Section -->
+        <div class="card">
+            <h2>🌐 Estado de la Red</h2>
+            <div id="networkStatus" style="font-size: 1.2em; color: #667eea; text-align: center; padding: 10px;">
+                <span id="clientCount">--</span> otros clientes conectados
+            </div>
+        </div>
+        
         <!-- File Upload Section -->
         <div class="card">
             <h2>📁 Subir Archivo</h2>
@@ -299,6 +307,31 @@
     </div>
     
     <script>
+        // Network status polling
+        async function updateNetworkStatus() {
+            try {
+                const response = await fetch('/api/network-status');
+                const data = await response.json();
+                
+                const clientCountEl = document.getElementById('clientCount');
+                
+                if (data.success) {
+                    clientCountEl.textContent = data.client_count;
+                    clientCountEl.style.color = '#667eea';
+                } else {
+                    clientCountEl.textContent = '--';
+                    clientCountEl.style.color = '#999';
+                }
+            } catch (error) {
+                console.error('Error fetching network status:', error);
+                document.getElementById('clientCount').textContent = '--';
+            }
+        }
+        
+        // Update network status every 10 seconds
+        updateNetworkStatus(); // Initial call
+        setInterval(updateNetworkStatus, 10000);
+        
         // Show/hide schedule fields based on video flag selection
         document.getElementById('videoFlag').addEventListener('change', function() {
             const scheduleFields = document.getElementById('scheduleFields');

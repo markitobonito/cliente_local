@@ -88,6 +88,10 @@ class ClientCoordinator:
             # Update QUIC sender with bridge IP
             if self.quic_sender:
                 self.quic_sender.set_bridge_ip(bridge_ip)
+            
+            # Update Flask app with bridge IP for network status queries
+            if self.flask_app:
+                self.flask_app.set_bridge_ip(bridge_ip)
     
     def initialize_modules(self) -> None:
         """
