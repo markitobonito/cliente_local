@@ -25,4 +25,4 @@ services:
 networks:
   localcito:
     name: localcito-network
-    external: true
+    driver: bridge
