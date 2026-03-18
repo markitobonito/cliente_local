@@ -1,14 +1,7 @@
 services:
   cliente:
     build: .
-    # Para desarrollo local (ambos contenedores en misma máquina): usar networks
-    # Para producción (máquinas separadas): usar docker-compose.prod.yml
-    networks:
-      - localcito
-    ports:
-      - "1492:1492/tcp"
-      - "5000:5000/udp"
-      - "4000:4000/udp"
+    network_mode: host
     restart: unless-stopped
     volumes:
       - ./received_files:/app/received_files
@@ -19,8 +12,3 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-networks:
-  localcito:
-    name: localcito-network
-    driver: bridge
