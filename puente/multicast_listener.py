@@ -103,6 +103,10 @@ class MulticastListener:
             
             msg_type, client_ip = parts
             
+            # Silently ignore BRIDGE messages (these are from the bridge itself)
+            if msg_type == 'BRIDGE':
+                raise ValueError("BRIDGE_MESSAGE")  # Special marker to ignore silently
+            
             # Validate message type
             if msg_type not in ('HELLO', 'ALIVE'):
                 raise ValueError(f"Invalid message type: {msg_type}")
@@ -156,7 +160,9 @@ class MulticastListener:
                             callback(msg_type, client_ip)
                             
                         except ValueError as e:
-                            self.logger.warning(f"Invalid message from {addr}: {e}")
+                            # Silently ignore BRIDGE messages (from bridge itself)
+                            if str(e) != "BRIDGE_MESSAGE":
+                                self.logger.warning(f"Invalid message from {addr}: {e}")
                     
                     except socket.timeout:
                         # Timeout is expected, continue listening

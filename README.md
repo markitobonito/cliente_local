@@ -23,64 +23,79 @@ El sistema consta de dos componentes independientes:
 
 ## Despliegue
 
-### Desarrollo Local (macOS/Windows o Linux con ambos contenedores en misma máquina)
+### Opción 1: Docker en Linux (Producción - RECOMENDADO)
 
-Usa la configuración por defecto con redes Docker:
+Para máquinas Linux separadas en la misma LAN física:
 
-**1. Inicia el puente primero:**
+**En el servidor puente:**
 ```bash
 cd localcito/puente
-docker compose up -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-**2. Luego inicia el cliente:**
+**En cada servidor cliente:**
 ```bash
+cd localcito/cliente
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Accede a la interfaz web: `http://<ip-cliente>:1492`
+
+### Opción 2: Python Nativo en macOS/Windows
+
+Docker Desktop en Mac/Windows no soporta multicast entre máquinas físicas. Usa Python directamente:
+
+**macOS:**
+```bash
+cd localcito/cliente
+chmod +x start_macos.sh
+./start_macos.sh
+```
+
+**Windows:**
+```cmd
+cd localcito\cliente
+start_windows.bat
+```
+
+Accede a la interfaz web: `http://localhost:1492`
+
+📖 **Guía completa**: Ver [INSTALL_MACOS_WINDOWS.md](INSTALL_MACOS_WINDOWS.md)
+
+### Opción 3: Desarrollo Local (Ambos contenedores en misma máquina)
+
+Solo para pruebas en una sola máquina:
+
+```bash
+# Inicia el puente
+cd localcito/puente
+docker compose up -d
+
+# Inicia el cliente
 cd localcito/cliente
 docker compose up -d
 ```
 
-**3. Accede a la interfaz web:**
+Accede a la interfaz web: `http://localhost:1492`
+
+### Arquitectura Recomendada para Producción
+
 ```
-http://localhost:1492
-```
-
-### Producción Linux (Máquinas Separadas)
-
-Para mejor rendimiento en Linux con máquinas separadas, usa `network_mode: host`:
-
-**1. Edita `docker-compose.yml` en cada máquina:**
-
-En el servidor puente (`localcito/puente/docker-compose.yml`):
-```yaml
-services:
-  puente:
-    # Comentar estas líneas:
-    # networks:
-    #   - localcito
-    # Descomentar esta línea:
-    network_mode: host
-```
-
-En cada servidor cliente (`localcito/cliente/docker-compose.yml`):
-```yaml
-services:
-  cliente:
-    # Comentar estas líneas:
-    # networks:
-    #   - localcito
-    # Descomentar esta línea:
-    network_mode: host
-```
-
-**2. Inicia los contenedores:**
-```bash
-# En servidor puente
-cd localcito/puente
-docker compose up -d
-
-# En cada servidor cliente
-cd localcito/cliente
-docker compose up -d
+┌─────────────────────────────────────────────────┐
+│  Puente (Bridge)                                │
+│  - Máquina: Linux                               │
+│  - Ejecución: docker-compose.prod.yml          │
+│  - IP: 192.168.1.100                           │
+└─────────────────────────────────────────────────┘
+                      │
+        ┌─────────────┼─────────────┐
+        │             │             │
+┌───────▼──────┐ ┌───▼──────┐ ┌───▼──────┐
+│ Cliente 1    │ │Cliente 2 │ │Cliente 3 │
+│ Linux        │ │macOS     │ │Windows   │
+│ Docker       │ │Python    │ │Python    │
+│ prod.yml     │ │nativo    │ │nativo    │
+└──────────────┘ └──────────┘ └──────────┘
 ```
 
 ### Notas Importantes

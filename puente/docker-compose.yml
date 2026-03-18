@@ -3,10 +3,9 @@ services:
     build: .
     container_name: localcito-puente
     # Para desarrollo local (ambos contenedores en misma máquina): usar networks
-    # Para producción (máquinas separadas): comentar networks y descomentar network_mode
+    # Para producción (máquinas separadas): usar docker-compose.prod.yml
     networks:
       - localcito
-    # network_mode: host  # Descomentar para producción Linux
     ports:
       - "5000:5000/udp"
       - "4000:4000/udp"
