@@ -67,11 +67,16 @@ class MulticastAnnouncer:
         # Set IP_MULTICAST_IF for macOS compatibility
         # This ensures the multicast packets are sent on the correct interface
         if self._local_ip:
-            sock.setsockopt(
-                socket.IPPROTO_IP,
-                socket.IP_MULTICAST_IF,
-                socket.inet_aton(self._local_ip)
-            )
+            try:
+                sock.setsockopt(
+                    socket.IPPROTO_IP,
+                    socket.IP_MULTICAST_IF,
+                    socket.inet_aton(self._local_ip)
+                )
+                self.logger.info(f"Multicast interface set to: {self._local_ip}")
+            except OSError as e:
+                self.logger.warning(f"Failed to set IP_MULTICAST_IF to {self._local_ip}: {e}")
+                self.logger.warning("Multicast may not work correctly.")
         
         self.logger.info(f"Multicast send socket configured: {self.multicast_group}:{self.multicast_port}")
         
@@ -111,6 +116,8 @@ class MulticastAnnouncer:
                 (self.multicast_group, self.multicast_port)
             )
             self.logger.debug(f"Sent BRIDGE announcement: {local_ip}")
+        except OSError as e:
+            self.logger.error(f"Failed to send BRIDGE announcement (OSError {e.errno}): {e}")
         except Exception as e:
             self.logger.error(f"Failed to send BRIDGE announcement: {e}")
     

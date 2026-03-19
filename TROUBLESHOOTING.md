@@ -4,34 +4,69 @@
 
 ### Los clientes no descubren el puente
 
-**Síntomas**: Cliente muestra "Waiting for bridge announcement..." indefinidamente
+**Síntomas**: Cliente muestra "Waiting for bridge announcement..." indefinidamente, logs muestran "Started listening for BRIDGE announcements" pero NO muestran "Sent HELLO message"
 
 **Diagnóstico**:
 ```bash
 # Ver logs del cliente
 cd localcito/cliente
-docker-compose logs -f | grep "BRIDGE\|discovery"
+docker-compose logs -f | grep "HELLO\|ALIVE\|BRIDGE\|discovery"
 
 # Ver logs del puente
 cd localcito/puente
-docker-compose logs -f | grep "BRIDGE\|announcer"
+docker-compose logs -f | grep "BRIDGE\|announcer\|HELLO\|ALIVE"
 ```
+
+**Causas comunes**:
+
+1. **Docker bridge network (172.x.x.x) aislado de la red física (192.x.x.x)**:
+   - Docker crea redes virtuales (172.17.0.0/16, 172.18.0.0/16, etc.)
+   - Estas redes están aisladas de tu LAN física
+   - Multicast NO puede atravesar esta barrera en Mac/Windows
+
+2. **Error de socket en macOS**: `[Errno 49] Can't assign requested address`
+   - Ocurre cuando el cliente intenta enviar multicast desde una IP de Docker (172.x.x.x)
+   - macOS requiere permisos especiales para multicast
+   - La IP detectada (172.x.x.x) no es válida para la interfaz física
+
+3. **Multicast bloqueado por firewall o router**:
+   - Algunos routers bloquean multicast por defecto
+   - Firewalls pueden bloquear puerto UDP 4000
 
 **Soluciones**:
 
-1. **Verificar que el puente esté corriendo**:
+1. **Para Linux - Usar network_mode: host**:
+```bash
+# Usar docker-compose.prod.yml
+cd localcito/cliente  # o puente
+docker compose -f docker-compose.prod.yml up -d
+```
+
+2. **Para macOS - Ejecutar Python nativo (NO Docker)**:
+```bash
+cd localcito/cliente
+./start_macos.sh
+```
+
+3. **Para Windows - Ejecutar Python nativo (NO Docker)**:
+```bash
+cd localcito\cliente
+start_windows.bat
+```
+
+4. **Verificar que el puente esté corriendo**:
 ```bash
 cd localcito/puente
 docker-compose ps
 # Debe mostrar: localcito-puente (Up)
 ```
 
-2. **Verificar multicast en la red**:
+5. **Verificar multicast en la red**:
    - Multicast debe estar habilitado en el router/switch
-   - Clientes y puente deben estar en la misma subred
+   - Clientes y puente deben estar en la misma subred (192.168.x.x)
    - Algunos routers bloquean multicast por defecto
 
-3. **Verificar firewall**:
+6. **Verificar firewall**:
 ```bash
 # macOS - verificar reglas
 sudo pfctl -s rules | grep 4000
@@ -40,7 +75,7 @@ sudo pfctl -s rules | grep 4000
 sudo iptables -L | grep 4000
 ```
 
-4. **Reiniciar servicios**:
+7. **Reiniciar servicios**:
 ```bash
 # Puente
 cd localcito/puente
@@ -49,6 +84,22 @@ docker-compose restart
 # Cliente
 cd localcito/cliente
 docker-compose restart
+```
+
+**Verificación exitosa**:
+Los logs deben mostrar:
+```
+# Cliente:
+2026-03-18 12:15:15 - discovery - INFO - Detected local IP: 192.168.1.100
+2026-03-18 12:15:15 - discovery - INFO - Sent HELLO message: HELLO|192.168.1.100
+2026-03-18 12:15:15 - discovery - INFO - Started heartbeat with interval 5s
+2026-03-18 12:15:18 - discovery - INFO - Received BRIDGE announcement: 192.168.1.50
+2026-03-18 12:15:18 - __main__ - INFO - Bridge discovered at: 192.168.1.50
+
+# Puente:
+2026-03-18 12:15:15 - multicast_announcer - INFO - Started announcing bridge IP: 192.168.1.50 every 3s
+2026-03-18 12:15:15 - multicast_listener - INFO - Received HELLO from 192.168.1.100
+2026-03-18 12:15:20 - multicast_listener - DEBUG - Received ALIVE from 192.168.1.100
 ```
 
 ### Clientes se marcan como inactivos

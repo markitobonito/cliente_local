@@ -92,11 +92,16 @@ class DiscoveryModule:
         # Set IP_MULTICAST_IF for macOS compatibility
         # This ensures the multicast packets go out on the correct interface
         if self.local_ip:
-            sock.setsockopt(
-                socket.IPPROTO_IP,
-                socket.IP_MULTICAST_IF,
-                socket.inet_aton(self.local_ip)
-            )
+            try:
+                sock.setsockopt(
+                    socket.IPPROTO_IP,
+                    socket.IP_MULTICAST_IF,
+                    socket.inet_aton(self.local_ip)
+                )
+                self.logger.info(f"Multicast interface set to: {self.local_ip}")
+            except OSError as e:
+                self.logger.warning(f"Failed to set IP_MULTICAST_IF to {self.local_ip}: {e}")
+                self.logger.warning("Multicast may not work correctly. Consider running with sudo or checking firewall settings.")
         
         # Enable address reuse
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -148,8 +153,11 @@ class DiscoveryModule:
                 (self.multicast_group, self.multicast_port)
             )
             self.logger.info(f"Sent HELLO message: {message}")
+        except OSError as e:
+            self.logger.error(f"Failed to send HELLO message (OSError {e.errno}): {e}")
+            self.logger.error(f"This may be a network configuration issue. Check firewall settings.")
         except Exception as e:
-            self.logger.error(f"Failed to send HELLO message: {e}")
+            self.logger.error(f"Failed to send HELLO message: {e}", exc_info=True)
     
     def send_alive(self, local_ip: str) -> None:
         """
@@ -170,6 +178,8 @@ class DiscoveryModule:
                 (self.multicast_group, self.multicast_port)
             )
             self.logger.debug(f"Sent ALIVE message: {message}")
+        except OSError as e:
+            self.logger.error(f"Failed to send ALIVE message (OSError {e.errno}): {e}")
         except Exception as e:
             self.logger.error(f"Failed to send ALIVE message: {e}")
     

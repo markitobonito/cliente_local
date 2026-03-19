@@ -1,0 +1,35 @@
+name: Auto-Deploy-Local
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sync-puente:
+    name: Sync Puente
+    runs-on: [self-hosted, puente-laptop2]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: temp_repo
+      
+      - name: Sincronizar cambios a la carpeta papa
+        run: |
+          rsync -av --delete temp_repo/ /home/markito/papa/
+
+  sync-cliente:
+    name: Sync Cliente
+    runs-on: [self-hosted, cliente]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: temp_repo
+      
+      - name: Sincronizar cambios a la carpeta papa
+        run: |
+          rsync -av --delete temp_repo/ /home/marco/papa/

@@ -185,4 +185,6 @@ docker-compose logs -f
 - [Cliente README](cliente/README.md)
 - [Puente README](puente/README.md)
 - [Arquitectura](ARCHITECTURE.md)
+- [Arquitectura de Red](NETWORK_ARCHITECTURE.md) - Explica por qué aparece 172.x.x.x y cómo funciona multicast
 - [Troubleshooting](TROUBLESHOOTING.md)
+- [Instalación macOS/Windows](INSTALL_MACOS_WINDOWS.md)
