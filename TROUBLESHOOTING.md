@@ -33,40 +33,58 @@ docker-compose logs -f | grep "BRIDGE\|announcer\|HELLO\|ALIVE"
    - Algunos routers bloquean multicast por defecto
    - Firewalls pueden bloquear puerto UDP 4000
 
+4. **Cambio de red después de iniciar el servicio** (macOS/Windows):
+   - Si inicias el cliente en una red (ej: WiFi con internet)
+   - Y luego cambias a otra red (ej: red local sin internet)
+   - El socket multicast queda configurado con la interfaz vieja
+   - El cliente NO puede recibir mensajes BRIDGE en la nueva red
+   - **Solución**: Reiniciar el cliente DESPUÉS de cambiar de red
+
 **Soluciones**:
 
 1. **Para Linux - Usar network_mode: host**:
 ```bash
-# Usar docker-compose.prod.yml
+# Usar docker-compose.yml (ya tiene network_mode: host)
 cd localcito/cliente  # o puente
-docker compose -f docker-compose.prod.yml up -d
+docker compose up -d
 ```
 
 2. **Para macOS - Ejecutar Python nativo (NO Docker)**:
 ```bash
 cd localcito/cliente
 ./start_macos.sh
+# IMPORTANTE: Ejecutar DESPUÉS de conectarte a la red del sistema
 ```
 
 3. **Para Windows - Ejecutar Python nativo (NO Docker)**:
 ```bash
 cd localcito\cliente
 start_windows.bat
+# IMPORTANTE: Ejecutar DESPUÉS de conectarte a la red del sistema
 ```
 
-4. **Verificar que el puente esté corriendo**:
+4. **Si cambias de red después de iniciar**:
+```bash
+# 1. Detener el cliente (Ctrl+C)
+# 2. Cambiar a la red del sistema
+# 3. Reiniciar el cliente
+cd localcito/cliente
+./start_macos.sh  # o start_windows.bat
+```
+
+5. **Verificar que el puente esté corriendo**:
 ```bash
 cd localcito/puente
 docker-compose ps
 # Debe mostrar: localcito-puente (Up)
 ```
 
-5. **Verificar multicast en la red**:
+6. **Verificar multicast en la red**:
    - Multicast debe estar habilitado en el router/switch
    - Clientes y puente deben estar en la misma subred (192.168.x.x)
    - Algunos routers bloquean multicast por defecto
 
-6. **Verificar firewall**:
+7. **Verificar firewall**:
 ```bash
 # macOS - verificar reglas
 sudo pfctl -s rules | grep 4000
@@ -75,7 +93,7 @@ sudo pfctl -s rules | grep 4000
 sudo iptables -L | grep 4000
 ```
 
-7. **Reiniciar servicios**:
+8. **Reiniciar servicios**:
 ```bash
 # Puente
 cd localcito/puente

@@ -103,7 +103,7 @@ class MulticastListener:
             
             msg_type, client_ip = parts
             
-            # Silently ignore BRIDGE messages (these are from the bridge itself)
+            # Silently ignore BRIDGE messages (these are from other bridges)
             if msg_type == 'BRIDGE':
                 raise ValueError("BRIDGE_MESSAGE")  # Special marker to ignore silently
             

@@ -141,12 +141,17 @@ class ClientCoordinator:
         """
         self.logger.info("Starting discovery module...")
         
-        # Start discovery with bridge callback
-        self.discovery.start(bridge_callback=self._bridge_callback)
-        
-        self.logger.info(
-            f"Discovery started: HELLO sent, heartbeat every {HEARTBEAT_INTERVAL}s"
-        )
+        try:
+            # Start discovery with bridge callback
+            self.discovery.start(bridge_callback=self._bridge_callback)
+            
+            self.logger.info(
+                f"Discovery started: HELLO sent, heartbeat every {HEARTBEAT_INTERVAL}s"
+            )
+        except Exception as e:
+            self.logger.error(f"Failed to start discovery: {e}", exc_info=True)
+            self.logger.error("Client will continue but multicast discovery will not work")
+            self.logger.error("You may need to manually configure the bridge IP")
     
     def start_quic_receiver(self) -> None:
         """

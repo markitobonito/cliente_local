@@ -32,6 +32,8 @@ class BridgeAPIHandler(BaseHTTPRequestHandler):
             self.handle_clients_request()
         elif self.path == '/api/status':
             self.handle_status_request()
+        elif self.path == '/api/bridge-info':
+            self.handle_bridge_info_request()
         else:
             self.send_error(404, "Not Found")
     
@@ -76,6 +78,33 @@ class BridgeAPIHandler(BaseHTTPRequestHandler):
             
         except Exception as e:
             logger.error(f"Error handling status request: {e}")
+            self.send_error(500, str(e))
+    
+    def handle_bridge_info_request(self):
+        """Return bridge IP address for HTTP fallback discovery."""
+        try:
+            # Get bridge IP from socket
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                s.connect(('8.8.8.8', 80))
+                bridge_ip = s.getsockname()[0]
+            finally:
+                s.close()
+            
+            response = {
+                'bridge_ip': bridge_ip,
+                'service': 'bridge'
+            }
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+            
+        except Exception as e:
+            logger.error(f"Error handling bridge info request: {e}")
             self.send_error(500, str(e))
 
 

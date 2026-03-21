@@ -13,6 +13,9 @@ QUIC_PORT = 5000
 # Flask configuration
 FLASK_PORT = 1492
 
+# Bridge API configuration
+BRIDGE_API_PORT = 8080
+
 # Heartbeat configuration
 HEARTBEAT_INTERVAL = 5  # seconds
 

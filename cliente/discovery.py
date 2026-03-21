@@ -10,13 +10,15 @@ import struct
 import threading
 import time
 import logging
+import requests
 from typing import Optional, Callable
 
 from config import (
     MULTICAST_GROUP,
     MULTICAST_PORT,
     MULTICAST_TTL,
-    HEARTBEAT_INTERVAL
+    HEARTBEAT_INTERVAL,
+    BRIDGE_API_PORT
 )
 from utils import detect_local_ip, setup_logging
 
@@ -52,6 +54,8 @@ class DiscoveryModule:
         self._running = False
         self._heartbeat_thread: Optional[threading.Thread] = None
         self._listener_thread: Optional[threading.Thread] = None
+        self._http_fallback_thread: Optional[threading.Thread] = None
+        self._multicast_received = False
         
         # Sockets
         self._send_socket: Optional[socket.socket] = None
@@ -213,6 +217,7 @@ class DiscoveryModule:
                         msg_type, ip = message.split('|', 1)
                         
                         if msg_type == 'BRIDGE':
+                            self._multicast_received = True
                             old_bridge_ip = self.bridge_ip
                             self.bridge_ip = ip
                             
@@ -234,6 +239,111 @@ class DiscoveryModule:
             self.logger.error(f"Failed to start multicast listener: {e}")
         finally:
             self.logger.info("Stopped listening for BRIDGE announcements")
+    
+    def _try_http_discovery(self, callback: Optional[Callable[[str], None]] = None) -> None:
+        """
+        HTTP fallback for bridge discovery when multicast fails.
+        
+        This method waits 10 seconds for multicast to work. If no BRIDGE
+        announcement is received, it tries HTTP requests to common gateway IPs
+        to find the bridge.
+        
+        Args:
+            callback: Optional callback function to call when bridge IP is found.
+        """
+        # Wait 10 seconds for multicast to work
+        for _ in range(10):
+            if not self._running:
+                return
+            if self._multicast_received:
+                self.logger.info("Multicast working, HTTP fallback not needed")
+                return
+            time.sleep(1)
+        
+        if not self._running:
+            return
+        
+        self.logger.warning("No multicast BRIDGE announcement received after 10 seconds")
+        self.logger.info("Trying HTTP fallback discovery...")
+        
+        # Generate candidate IPs based on local IP
+        candidates = []
+        if self.local_ip:
+            # Try gateway IPs in same subnet
+            parts = self.local_ip.split('.')
+            if len(parts) == 4:
+                subnet = '.'.join(parts[:3])
+                # Try .1 (common gateway), .100, .101, .254
+                candidates.extend([
+                    f"{subnet}.1",
+                    f"{subnet}.100",
+                    f"{subnet}.101",
+                    f"{subnet}.254"
+                ])
+        
+        # Also try common private network gateways
+        candidates.extend([
+            "192.168.0.1",
+            "192.168.1.1",
+            "192.168.0.100",
+            "192.168.1.100",
+            "10.0.0.1",
+            "10.0.1.1"
+        ])
+        
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_candidates = []
+        for ip in candidates:
+            if ip not in seen:
+                seen.add(ip)
+                unique_candidates.append(ip)
+        
+        self.logger.info(f"Trying HTTP discovery on {len(unique_candidates)} candidate IPs...")
+        
+        # Try each candidate
+        for candidate_ip in unique_candidates:
+            if not self._running:
+                return
+            
+            if self._multicast_received:
+                # Multicast started working, stop HTTP fallback
+                return
+            
+            try:
+                url = f"http://{candidate_ip}:{BRIDGE_API_PORT}/api/bridge-info"
+                response = requests.get(url, timeout=1)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    bridge_ip = data.get('bridge_ip')
+                    
+                    if bridge_ip:
+                        self.logger.info(f"✓ Bridge found via HTTP at {bridge_ip}")
+                        self.bridge_ip = bridge_ip
+                        
+                        # Call callback
+                        if callback:
+                            callback(bridge_ip)
+                        
+                        return
+            
+            except requests.exceptions.Timeout:
+                # Timeout is expected for non-bridge IPs
+                pass
+            except requests.exceptions.ConnectionError:
+                # Connection refused is expected for non-bridge IPs
+                pass
+            except Exception as e:
+                # Log unexpected errors but continue trying
+                self.logger.debug(f"HTTP discovery error for {candidate_ip}: {e}")
+        
+        self.logger.error("❌ HTTP fallback discovery failed - no bridge found")
+        self.logger.error("Possible solutions:")
+        self.logger.error("  1. Ensure bridge is running and accessible")
+        self.logger.error("  2. Check firewall settings on both client and bridge")
+        self.logger.error("  3. Verify both devices are on the same network")
+        self.logger.error("  4. Check router IGMP snooping settings")
     
     def start_heartbeat(self, local_ip: str, interval: int = HEARTBEAT_INTERVAL) -> None:
         """
@@ -267,28 +377,42 @@ class DiscoveryModule:
         2. Sends a HELLO message
         3. Starts the heartbeat thread
         4. Starts the bridge listener thread
+        5. Starts the HTTP fallback thread (tries after 10s if multicast fails)
         
         Args:
             bridge_callback: Optional callback for when bridge IP is received
         """
-        # Detect local IP
-        local_ip = self.detect_local_ip()
-        
-        # Send initial HELLO message
-        self.send_hello(local_ip)
-        
-        # Start heartbeat
-        self.start_heartbeat(local_ip)
-        
-        # Start listening for bridge announcements
-        self._listener_thread = threading.Thread(
-            target=self.listen_for_bridge,
-            args=(bridge_callback,),
-            daemon=True
-        )
-        self._listener_thread.start()
-        
-        self.logger.info("Discovery module started")
+        try:
+            # Detect local IP
+            local_ip = self.detect_local_ip()
+            self.logger.info(f"Discovery module starting with IP: {local_ip}")
+            
+            # Send initial HELLO message
+            self.send_hello(local_ip)
+            
+            # Start heartbeat
+            self.start_heartbeat(local_ip)
+            
+            # Start listening for bridge announcements
+            self._listener_thread = threading.Thread(
+                target=self.listen_for_bridge,
+                args=(bridge_callback,),
+                daemon=True
+            )
+            self._listener_thread.start()
+            
+            # Start HTTP fallback thread
+            self._http_fallback_thread = threading.Thread(
+                target=self._try_http_discovery,
+                args=(bridge_callback,),
+                daemon=True
+            )
+            self._http_fallback_thread.start()
+            
+            self.logger.info("Discovery module started successfully")
+        except Exception as e:
+            self.logger.error(f"Failed to start discovery module: {e}", exc_info=True)
+            raise
     
     def stop(self) -> None:
         """
@@ -305,6 +429,9 @@ class DiscoveryModule:
         
         if self._listener_thread and self._listener_thread.is_alive():
             self._listener_thread.join(timeout=2.0)
+        
+        if self._http_fallback_thread and self._http_fallback_thread.is_alive():
+            self._http_fallback_thread.join(timeout=2.0)
         
         # Close sockets
         if self._send_socket:
@@ -325,3 +452,4 @@ class DiscoveryModule:
             Optional[str]: The bridge IP address, or None if not yet discovered
         """
         return self.bridge_ip
+ 
